@@ -5,7 +5,7 @@ from ultralytics import YOLO
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial import distance
 from skimage.feature import hog
-import bytetracker
+from bytetracker.byte_tracker import BYTETracker
 
 print(f"OpenCV version: {cv2.__version__}")
 print(f"NumPy version: {np.__version__}")
