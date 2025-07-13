@@ -11,7 +11,7 @@ This system implements a sophisticated computer vision pipeline for real-time pl
 
 ### Core Components
 
-1. **Detection Module**: YOLOv8-based player detection with configurable confidence thresholds
+1. **Detection Module**: YOLOv11-based player detection with configurable confidence thresholds
 2. **Tracking Module**: ByteTracker implementation for temporal consistency within each camera
 3. **Feature Extraction**: Multi-modal feature representation combining color and texture descriptors
 4. **Cross-Camera Matching**: Hungarian algorithm-based optimal assignment with stability constraints
