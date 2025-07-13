@@ -17,7 +17,7 @@ This system implements a sophisticated computer vision pipeline for real-time pl
 4. **Cross-Camera Matching**: Hungarian algorithm-based optimal assignment with stability constraints
 5. **Visualization Pipeline**: Real-time correspondence visualization with color-coded matching
 
-### Technical Innovation
+### Technical features
 
 The system introduces a **Stable Matching System** that addresses temporal instability through:
 - Historical consistency tracking over configurable time windows
