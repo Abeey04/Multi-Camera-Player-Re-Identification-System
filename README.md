@@ -4,6 +4,9 @@
 
 This system implements a sophisticated computer vision pipeline for real-time player re-identification across multiple camera views. The solution addresses the fundamental challenge of maintaining consistent player identity across different viewing angles, lighting conditions, and occlusions commonly encountered in sports analytics.
 
+![alt text](https://github.com/Abeey04/Multi-Camera-Player-Re-Identification-System/blob/main/misc/output_reid.gif)
+
+
 ## System Architecture
 
 ### Core Components
