@@ -32,26 +32,24 @@ TRACKER_CONFIG = {
 # Feature Extraction Parameters
 PATCH_SIZE = (64, 128)
 
-# Matching Parameters - Made more restrictive
-MATCH_THRESHOLD = 0.3  # Reduced from 0.4 for stricter matching
+# Matching Parameters
+MATCH_THRESHOLD = 0.3  
 MIN_PATCH_SIZE = 20    # Minimum width/height for valid patches
 STABILITY_FRAMES = 15   # Frames to maintain stable matches
 
 # --- Enhanced Feature Extraction ---
 def extract_visual_features(patch):
-    """Enhanced feature extraction with better normalization and error handling."""
     if patch.size == 0 or patch.shape[0] < MIN_PATCH_SIZE or patch.shape[1] < MIN_PATCH_SIZE:
         return None
     
     # Resize to standard size
     resized_patch = cv2.resize(patch, PATCH_SIZE)
-    
-    # Enhanced color features with better binning
+
     hsv_patch = cv2.cvtColor(resized_patch, cv2.COLOR_BGR2HSV)
     
-    # Focus on hue and saturation (more discriminative than value)
-    hist_h = cv2.calcHist([hsv_patch], [0], None, [36], [0, 180])  # Hue bins
-    hist_s = cv2.calcHist([hsv_patch], [1], None, [32], [0, 256])  # Saturation bins
+    #hue and saturation
+    hist_h = cv2.calcHist([hsv_patch], [0], None, [36], [0, 180])
+    hist_s = cv2.calcHist([hsv_patch], [1], None, [32], [0, 256])
     
     # Normalize histograms
     hist_h = cv2.normalize(hist_h, hist_h).flatten()
@@ -74,40 +72,30 @@ class StableMatchingSystem:
         self.stable_matches = {}  # broadcast_id -> tacticam_id
         
     def update_matches(self, frame_matches):
-        """Update matches with stability tracking."""
-        # Update match history
         for b_id, t_id in frame_matches.items():
             if b_id not in self.match_history:
                 self.match_history[b_id] = []
             self.match_history[b_id].append(t_id)
-            
-            # Keep only recent history
+
             if len(self.match_history[b_id]) > self.stability_frames:
                 self.match_history[b_id].pop(0)
-        
-        # Update stable matches based on consistency
+y
         new_stable_matches = {}
         for b_id, history in self.match_history.items():
             if len(history) >= min(3, self.stability_frames):
-                # Find most frequent match in recent history
                 unique, counts = np.unique(history, return_counts=True)
                 most_frequent = unique[np.argmax(counts)]
                 
-                # Only consider stable if it appears in majority of recent frames
                 if counts[np.argmax(counts)] >= len(history) * 0.6:
                     new_stable_matches[b_id] = most_frequent
-        
-        # Ensure one-to-one mapping
+
         self.stable_matches = self._ensure_one_to_one_mapping(new_stable_matches)
         return self.stable_matches
     
     def _ensure_one_to_one_mapping(self, matches):
-        """Ensure each tacticam player maps to only one broadcast player."""
-        # Track which tacticam IDs are already assigned
         used_tacticam_ids = set()
         final_matches = {}
         
-        # Sort by some criteria (e.g., broadcast ID) for consistent resolution
         for b_id in sorted(matches.keys()):
             t_id = matches[b_id]
             if t_id not in used_tacticam_ids:
@@ -118,7 +106,6 @@ class StableMatchingSystem:
 
 # --- Main Processing Function ---
 def process_videos():
-    # Load model and initialize video captures
     model = YOLO(MODEL_PATH)
     cap_broadcast = cv2.VideoCapture(BROADCAST_VIDEO_PATH)
     cap_tacticam = cv2.VideoCapture(TACTICAM_VIDEO_PATH)
@@ -182,7 +169,7 @@ def process_videos():
         features_b, bboxes_b = {}, {}
         for track in tracks_b:
             x1, y1, x2, y2, track_id = map(int, track[:5])
-            if x2 > x1 and y2 > y1:  # Valid bounding box
+            if x2 > x1 and y2 > y1:
                 patch = frame_b[y1:y2, x1:x2]
                 features = extract_visual_features(patch)
                 if features is not None:
@@ -192,14 +179,13 @@ def process_videos():
         features_t, bboxes_t = {}, {}
         for track in tracks_t:
             x1, y1, x2, y2, track_id = map(int, track[:5])
-            if x2 > x1 and y2 > y1:  # Valid bounding box
+            if x2 > x1 and y2 > y1: 
                 patch = frame_t[y1:y2, x1:x2]
                 features = extract_visual_features(patch)
                 if features is not None:
                     features_t[track_id] = features
                     bboxes_t[track_id] = (x1, y1, x2, y2)
-        
-        # Cross-camera matching with Hungarian algorithm
+
         frame_matches = {}
         if features_b and features_t:
             broadcast_ids = list(features_b.keys())
@@ -218,8 +204,7 @@ def process_videos():
                 for r, c in zip(row_ind, col_ind):
                     if cost_matrix[r, c] < MATCH_THRESHOLD:
                         frame_matches[broadcast_ids[r]] = tacticam_ids[c]
-        
-        # Update stable matches
+
         stable_matches = matching_system.update_matches(frame_matches)
         
         # Visualization
@@ -228,20 +213,17 @@ def process_videos():
         output_frame[:, :w_b] = frame_b
         output_frame[:, w_b:] = frame_t_resized
         
-        # Draw stable matches only
         colors = [(0, 255, 0), (255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)]
         for i, (b_id, t_id) in enumerate(stable_matches.items()):
             color = colors[i % len(colors)]
             
-            # Broadcast player
             if b_id in bboxes_b:
                 x1_b, y1_b, x2_b, y2_b = bboxes_b[b_id]
                 center_b = ((x1_b + x2_b) // 2, (y1_b + y2_b) // 2)
                 cv2.rectangle(output_frame, (x1_b, y1_b), (x2_b, y2_b), color, 2)
                 cv2.putText(output_frame, f"B:{b_id}", (x1_b, y1_b - 10), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-            
-            # Tacticam player
+
             if t_id in bboxes_t:
                 x1_t, y1_t, x2_t, y2_t = bboxes_t[t_id]
                 x1_t_s = int(x1_t * scale_factor) + w_b
@@ -253,8 +235,7 @@ def process_videos():
                 cv2.rectangle(output_frame, (x1_t_s, y1_t_s), (x2_t_s, y2_t_s), color, 2)
                 cv2.putText(output_frame, f"T:{t_id}", (x1_t_s, y1_t_s - 10), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-                
-                # Draw connection line
+
                 if b_id in bboxes_b:
                     cv2.line(output_frame, center_b, center_t, color, 2)
         
